@@ -25,6 +25,10 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS conversion_yield INTEGER DE
 -- Add raw_piece_yield column (pieces yielded by bulk package)
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS raw_piece_yield INTEGER DEFAULT 0;
 
+-- Add deduction_ratio column (used for portion items like half/quarter)
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS deduction_ratio DOUBLE PRECISION DEFAULT 1.0;
+
 -- Recreate index on parent_barcode for performance
 CREATE INDEX IF NOT EXISTS idx_products_parent_barcode ON public.products(parent_barcode);
 CREATE INDEX IF NOT EXISTS idx_products_parent_wholesale_barcode ON public.products(parent_wholesale_barcode);
+

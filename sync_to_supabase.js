@@ -56,6 +56,7 @@ async function sync() {
       parent_wholesale_barcode: p.parent_wholesale_barcode,
       conversion_yield: parseInt(p.conversion_yield || 0),
       raw_piece_yield: parseInt(p.raw_piece_yield || 0),
+      deduction_ratio: parseFloat(p.deduction_ratio || 1.0),
       created_at: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString(),
       updated_at: p.updated_at ? new Date(p.updated_at).toISOString() : new Date().toISOString()
     };
