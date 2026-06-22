@@ -40,7 +40,7 @@ type SupplierTransaction = {
 };
 
 export default function StockInPage() {
-  const { data: transactions, error, isLoading } = useSWR("stockInData", fetcher);
+  const { data: transactions, error, isLoading } = useSWR("stockInData", fetcher, { refreshInterval: 300000 });
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
 

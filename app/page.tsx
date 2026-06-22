@@ -57,7 +57,7 @@ const fetcher = async () => {
 const COLORS = ["#10b981", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899"];
 
 export default function OverviewPage() {
-  const { data, error, isLoading, mutate } = useSWR("overviewData", fetcher);
+  const { data, error, isLoading, mutate } = useSWR("overviewData", fetcher, { refreshInterval: 300000 });
   
   // Tabs: 'overview' | 'profit' | 'breakdown'
   const [activeTab, setActiveTab] = useState<"overview" | "profit" | "breakdown">("overview");

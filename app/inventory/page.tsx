@@ -20,7 +20,7 @@ type SortOption = "name_asc" | "name_desc" | "stock_asc" | "stock_desc";
 type StockFilter = "all" | "out_of_stock" | "low_stock" | "healthy";
 
 export default function InventoryPage() {
-  const { data: products, error, isLoading } = useSWR("inventoryData", fetcher);
+  const { data: products, error, isLoading } = useSWR("inventoryData", fetcher, { refreshInterval: 300000 });
   
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");

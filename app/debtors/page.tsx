@@ -17,7 +17,7 @@ const fetcher = async () => {
 };
 
 export default function DebtorsPage() {
-  const { data: debtors, error, isLoading } = useSWR("debtorsData", fetcher);
+  const { data: debtors, error, isLoading } = useSWR("debtorsData", fetcher, { refreshInterval: 300000 });
   const [editingDebtor, setEditingDebtor] = useState<any>(null);
   const [newLimit, setNewLimit] = useState("");
 
