@@ -29,12 +29,14 @@ import {
 } from "recharts";
 
 const fetcher = async () => {
-  const [salesRes, itemsRes, supplierRes, productsRes, adjustmentsRes] = await Promise.all([
+  const [salesRes, itemsRes, supplierRes, productsRes, adjustmentsRes, cashDrawingsRes, productDrawingsRes] = await Promise.all([
     supabase.from("cloud_sales").select("*").order("created_at", { ascending: false }),
     supabase.from("cloud_sale_items").select("*"),
     supabase.from("supplier_transactions").select("*").order("created_at", { ascending: false }),
     supabase.from("products").select("*").order("name", { ascending: true }),
     supabase.from("stock_adjustments").select("*").order("created_at", { ascending: false }).limit(10),
+    supabase.from("cloud_cash_drawings").select("*").order("created_at", { ascending: false }),
+    supabase.from("cloud_product_drawings").select("*").order("created_at", { ascending: false }),
   ]);
 
   if (salesRes.error) throw salesRes.error;
@@ -48,6 +50,8 @@ const fetcher = async () => {
     supplierTransactions: supplierRes.data || [],
     products: productsRes.data || [],
     stockAdjustments: adjustmentsRes.data || [],
+    cashDrawings: cashDrawingsRes.data || [],
+    productDrawings: productDrawingsRes.data || [],
   };
 };
 
@@ -142,25 +146,42 @@ export default function OverviewPage() {
     );
   }
 
-  const { sales, saleItems, supplierTransactions, products, stockAdjustments } = data!;
+  const { sales, saleItems, supplierTransactions, products, stockAdjustments, cashDrawings, productDrawings } = data!;
 
-  // 1. AMOUNT OF MONEY IN CASH DRAWER
-  const totalCashSales = sales.reduce(
-    (acc, s) => acc + (parseFloat(s.cash_amount || s.total || "0")),
-    0
-  );
+  // 1. AMOUNT OF MONEY IN PHYSICAL CASH DRAWER & DRAWINGS
+  // FIX: Only count CASH transactions for the drawer (excluding M-PESA/CARD) to match reality
+  const totalCashSales = sales.reduce((acc, s) => {
+    if (!s.payment_method || s.payment_method === "CASH") {
+      return acc + (parseFloat(s.cash_amount || s.total || "0"));
+    }
+    return acc;
+  }, 0);
   const totalCashPaidToSuppliers = supplierTransactions.reduce(
     (acc, tx) => acc + (parseFloat(tx.cash_paid || "0")),
     0
   );
-  const moneyInCashDrawer = totalCashSales - totalCashPaidToSuppliers;
+  const totalCashDrawnOut = (cashDrawings || []).reduce(
+    (acc, cd) => acc + (parseFloat(cd.amount || "0")),
+    0
+  );
+  const totalProductDrawnValue = (productDrawings || []).reduce(
+    (acc, pd) => acc + (parseFloat(pd.total_cost || "0")),
+    0
+  );
+  const moneyInCashDrawer = totalCashSales - totalCashPaidToSuppliers - totalCashDrawnOut;
 
-  // 2. SALES MADE (Total Completed Transactions & Total Item Qty Sold)
+  // 2. SALES MADE (Total Completed Transactions & Total Item Qty Sold) & Average Order Value (AOV)
   const totalSalesCount = sales.length;
   const totalItemsSoldQty = saleItems.reduce(
     (acc, item) => acc + (parseFloat(item.quantity || "0")),
     0
   );
+  
+  // FEATURE ADDITION: Average Order Value (AOV)
+  const averageOrderValue = totalSalesCount > 0 ? (totalCashSales + sales.reduce((acc, s) => {
+    if (s.payment_method && s.payment_method !== "CASH") return acc + parseFloat(s.total || "0");
+    return acc;
+  }, 0)) / totalSalesCount : 0;
 
   // 3. REVENUE IN (Total Gross Earnings)
   const totalRevenueIn = sales.reduce((acc, s) => acc + parseFloat(s.total || "0"), 0);
@@ -178,7 +199,8 @@ export default function OverviewPage() {
   }));
 
   // 4. PROFITS MADE (Net Profit = Revenue - COGS)
-  // Map product cogs/buying price for quick lookup
+  // FIX: Aligned perfectly with POS AnalyticsService.java which does SUM((unit_price - unit_cogs) * qty)
+  // Maps product cogs/buying price for quick lookup
   const productCostMap: Record<string, number> = {};
   products.forEach((p) => {
     const cost = parseFloat(p.last_buying_price || p.wholesale_price || "0");
@@ -186,17 +208,18 @@ export default function OverviewPage() {
     if (p.barcode) productCostMap[p.barcode] = cost;
   });
 
-  let totalCogs = 0;
+  let profitsMade = 0;
   saleItems.forEach((item) => {
     const qty = parseFloat(item.quantity || "0");
+    const unitPrice = parseFloat(item.unit_price || "0");
     let unitCost = parseFloat(item.unit_cogs || "0");
+    
     if (unitCost <= 0) {
       unitCost = productCostMap[item.product_id] || productCostMap[item.product_barcode] || 0;
     }
-    totalCogs += unitCost * qty;
+    
+    profitsMade += (unitPrice - unitCost) * qty;
   });
-
-  const profitsMade = Math.max(0, totalRevenueIn - totalCogs);
   const profitMarginPct = totalRevenueIn > 0 ? (profitsMade / totalRevenueIn) * 100 : 0;
 
   // 5. REALTIME STOCK CHANGES & LOW STOCK ALERTS
@@ -316,10 +339,10 @@ export default function OverviewPage() {
             </div>
           </div>
           <div className="text-xl sm:text-2xl font-bold text-foreground">
-            {totalSalesCount}
+            {totalSalesCount} <span className="text-sm font-normal text-muted-foreground">tickets</span>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground truncate">
-            {totalItemsSoldQty.toLocaleString()} total items sold
+          <p className="mt-2 text-[11px] text-purple-600 dark:text-purple-400 font-semibold truncate">
+            Avg Basket: KSh {averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
         </div>
 
