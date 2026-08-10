@@ -37,19 +37,7 @@ export function TopNav() {
             <RefreshCw className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          <button
-            type="button"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="rounded-full bg-accent/50 p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 focus:outline-none"
-            title="Toggle Theme"
-          >
-            <span className="sr-only">Toggle theme</span>
-            {mounted && theme === "dark" ? (
-              <Sun className="h-5 w-5" aria-hidden="true" />
-            ) : (
-              <Moon className="h-5 w-5" aria-hidden="true" />
-            )}
-          </button>
+
         </div>
       </div>
     </div>

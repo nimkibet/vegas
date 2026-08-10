@@ -19,8 +19,9 @@ export default function RootLayout({
       <body className="min-h-screen w-full flex bg-background text-foreground transition-colors duration-300">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          forcedTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <Sidebar />
